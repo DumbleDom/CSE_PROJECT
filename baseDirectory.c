@@ -49,16 +49,17 @@ struct business{
     float rating;
 };
 
-
-void displayBusiness(struct business b);
 int loadBusinesses(struct business b[]);
-void writeBusinesses();
-void viewOwnerPage(struct profile user, struct business ownedBusiness);
+void displayBusiness(struct business b);
+//unimplemented
 void adminPage(struct profile user);
-struct business searchByName(struct business businesses[], char search[]);
+struct business searchByName(struct business businesses[]);
 struct business searchByTag(struct business businesses[]);
+void logIn(struct profile *user);
 void guestView(struct business b);
 void adminView(struct business b);
+void writeBusinesses();
+void viewOwnerPage(struct business ownedBusiness);
 
 int main(){
     printf("---------------------------------\n");
@@ -88,7 +89,7 @@ int main(){
         //3. Log out -> login prompt 
             //If not logged in, Log in option
         //4. Owner page option
-void adminPage(struct profile user);
+        
             //Check is userStatus is businessOwner
             //Search to find the business belonging to user
             //if no user, or no business attached to user, give an error and continue loop
@@ -97,8 +98,116 @@ void adminPage(struct profile user);
             //check to see if user has admin status
             //if so, open adminPage
         //6. exit
+        printf("Enter a nummberr to proceed\n");
+        printf("1. Search for a shop by name\n");
+        printf("2. Seach for shops using tags\n");
+        if(&userPro == NULL){
+            printf("3. Log In\n");
+            printf("4. QUIT");
+            scanf("%d",&option);
+            switch(option){
+                case 1:
+                    searchByName(businesses);
+                    break;
+                case 2:
+                    searchByTag(businesses);
+                    break;
+                case 3:
+                    logIn(&userPro);
+                    break;
+                case 4:
+                    break;
+                default:
+                    printf("Please enter a valid number");
+                    break;
+            }
+        } else {
+            printf("3. Log out\n");
+            if(userPro.status == businessOwner){
+                printf("4. View you business page\n");
+                printf("5. QUIT\n");
+                scanf("%d",&option);
+                switch(option){
+                    case 1:
+                        searchByName(businesses);
+                        break;
+                    case 2:
+                        searchByTag(businesses);
+                        break;
+                    case 3:
+                        &userPro == NULL;
+                        break;
+                    case 4:
+                        //search for business owned by user
+                        //return error if business is not found
+                        //if business is found, open the business page
+                        int found = 0;
+                        int index = -1;
+                        for(int i = 0; i < sizeof(businesses)/sizeof(businesses[0]);i++){
+                            if(userPro.id == businesses[i].ownerId){
+                                found = 1;
+                                index = i;
+                            }
+                        }
+                        if(found){
+                            viewOwnerPage(businesses[index]);
+                        } else {
+                            printf("Couldn't find you business");
+                        }
+                        break;
+                    case 5:
+                        break;
+                    default:
+                        printf("Please enter a valid number");
+                        break;
+                }
+            } else if (userPro.status == admin){
+                printf("4. Enter Admin view\n");
+                printf("5. QUIT\n");
+                scanf("%d",&option);
+                switch(option){
+                    case 1:
+                        searchByName(businesses);
+                        break;
+                    case 2:
+                        searchByTag(businesses);
+                        break;
+                    case 3:
+                        &userPro == NULL;
+                        break;
+                    case 4:
+                        adminPage(userPro);
+                        break;
+                    case 5:
+                        break;
+                    default:
+                        printf("Please enter a valid number");
+                        break;
+                }
+            } else {
+                printf("4. QUIT\n");
+                scanf("%d",&option);
+                switch(option){
+                    case 1:
+                        searchByName(businesses);
+                        break;
+                    case 2:
+                        searchByTag(businesses);
+                        break;
+                    case 3:
+                        &userPro == NULL;
+                        break;
+                    case 4:
+                        break;
+                    default:
+                        printf("Please enter a valid number");
+                        break;
+                }
+            }
+        }
+        printf("\n");
 
-    }while(option != 6);
+    }while(!(option == 4 && (userPro.status == businessOwner || userPro.status == admin))&& (option != 5));
 
 }
 
@@ -125,7 +234,7 @@ void displayBusiness(struct business b){
     printf("\n\n");
 }
 
-void viewOwnerPage(struct profile user, struct business ownedBusiness){
+void viewOwnerPage(struct business ownedBusiness){
     //print statement elling user what page they're editing
     //enter loop to 
     //1. Edit Business description and tags(other than verified)
