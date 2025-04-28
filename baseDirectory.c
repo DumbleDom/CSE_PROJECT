@@ -143,10 +143,14 @@ int main(){
             scanf("%d",&option);
             switch(option){
                 case 1:
-                    guestView(*searchByName(businesses));
+                    struct business b = *searchByName(businesses);
+                    if(&b != NULL);
+                        guestView(b);
                     break;
                 case 2:
-                    guestView(*searchByTag(businesses));
+                    struct business b = *searchByTag(businesses);
+                    if(&b != NULL);
+                        guestView(b);
                     break;
                 case 3:
                     logIn(&userPro);
@@ -165,10 +169,14 @@ int main(){
                 scanf("%d",&option);
                 switch(option){
                     case 1:
-                        guestView(*searchByName(businesses));
+                        struct business b = *searchByName(businesses);
+                        if(&b != NULL);
+                            guestView(b);
                         break;
                     case 2:
-                        guestView(*searchByTag(businesses));
+                        struct business b = *searchByTag(businesses);
+                        if(&b != NULL);
+                            guestView(b);
                         break;
                     case 3:
                         &userPro == NULL;
@@ -203,10 +211,14 @@ int main(){
                 scanf("%d",&option);
                 switch(option){
                     case 1:
-                        guestView(*searchByName(businesses));
+                        struct business b = *searchByName(businesses);
+                        if(&b != NULL);
+                            guestView(b);
                         break;
                     case 2:
-                        guestView(*searchByTag(businesses));
+                        struct business b = *searchByTag(businesses);
+                        if(&b != NULL);
+                            guestView(b);
                         break;
                     case 3:
                         &userPro == NULL;
@@ -226,10 +238,14 @@ int main(){
                 scanf("%d",&option);
                 switch(option){
                     case 1:
-                        guestView(*searchByName(businesses));
+                        struct business b = *searchByName(businesses);
+                        if(&b != NULL);
+                            guestView(b);
                         break;
                     case 2:
-                        guestView(*searchByTag(businesses));
+                        struct business b = *searchByTag(businesses);
+                        if(&b != NULL);
+                            guestView(b);
                         break;
                     case 3:
                         &userPro == NULL;
@@ -291,7 +307,7 @@ struct business * searchByTag(struct business businesses[]){
         }
     }
     if (count==1){
-        printf("We could not find any businesses matching that name.");
+        printf("We could not find any businesses with that set of tags.");
         return NULL;
     } else {
         printf("Enter the number of the business you are looking for: \n");
