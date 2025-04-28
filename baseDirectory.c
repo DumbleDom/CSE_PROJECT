@@ -75,14 +75,16 @@ struct business{
     int ownerId;
     int tagCode;
     float rating;
+    int numReviews;
 };
 
 int loadBusinesses(struct business b[]);
 void displayBusiness(struct business b);
 //unimplemented
 void adminPage(struct profile user);
-struct business searchByName(struct business businesses[]);
-struct business searchByTag(struct business businesses[]);
+//these two were causing problems, why are they structs? I had to change that
+void searchByName(struct business businesses[]);
+void searchByTag(struct business businesses[]);
 void logIn(struct profile *user);
 void guestView(struct business b);
 void adminView(struct business b);
@@ -281,6 +283,65 @@ void adminPage(struct profile user){
     //4. quit
 }
 
+
+void searchByName (struct business allofthem[]){
+    char searchfor[100];
+    int matches[10];
+    int count = 1;
+    printf("Enter the name of the business you are looking for: \n");
+    fgets(searchfor, sizeof(searchfor), stdin);
+    searchfor[strlen(searchfor)-1] = '\0'; // cuts the \n off the input
+    //struct business allofthem[MAX_NUM_BUSINESS]; 
+    //opens up the business bin and puts them all in a big array so I can look at them
+    //loadBusinesses(allofthem);//these arestill here from before integration
+    for (int i = 0; i<sizeof(allofthem);i++){
+        if (!strcmp(allofthem[i].busName,searchfor)){
+            //list of the first 10 businesses
+            printf("%d) %s\n",count,allofthem[i].busName);
+            matches[count]=i;
+            count++;
+        }
+        if (count==11||strcmp(allofthem[i].busName,"")){
+            break;
+        }
+    }
+    if (count==1){
+        printf("We could not find any businesses matching that name.");
+    } else {
+        printf("Enter the number of the business you are looking for: \n");
+        int pick;
+        scanf("%d",&pick);
+        guestView(allofthem[matches[pick]]);
+    }
+}
+
+void guestView (struct business b){
+    int critic;
+    char body[MAX_REVIEW_LENGTH];
+    char author[MAX_NAME_LENGTH];
+    int rating;
+    displayBusiness(b);
+    printf("Leave a review? 1 for yes, 2 for no\n");
+    scanf("%d", &critic);
+    if (critic != 1){
+        printf("Understood.");
+    } else {
+        printf("Enter your review: \n");
+        fgets(body,sizeof(body),stdin); //this one is hallucinating
+        fgets(body,sizeof(body),stdin); //this one is actually doing important stuff
+        printf("Enter your name: \n");
+        fgets(author,sizeof(author),stdin);
+        printf("Enter a number of stars from 1 to 5: \n");
+        scanf("%d",&rating);
+        //if ((b.numReviews)==NULL){b.numReviews=0;}
+        //printf("%s",b.reviews[b.numReviews].author);
+        strcpy(b.reviews[b.numReviews].author,author);
+        strcpy(b.reviews[b.numReviews].body,body);
+        b.reviews[b.numReviews].starRating = rating;
+        b.numReviews++;
+    }
+        
+}
 
 bool compare(struct profile *user)
 {
