@@ -91,11 +91,10 @@ struct business * searchByName(struct business businesses[]);
 void createBusiness(struct profile* p, struct business b[]);
 void logIn(struct profile *user);
 void guestView(struct business b);
+struct business * searchByTag(struct business businesses[]);
 //unimplemented
 void adminPage(struct profile user);
-struct business * searchByTag(struct business businesses[]);
 void adminView(struct business b);
-void listBusinesses(struct business list[]);
 void viewOwnerPage(struct business ownedBusiness);
 
 int main(){
