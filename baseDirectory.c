@@ -3,16 +3,20 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <memory.h>
+#include <math.h>
 #include "sha256.h"
 
 #define BUSINESS_FILE "businesses.bin"
-#define USERNAMES_FILE "usernames.txt"
-#define PASSWORDS_FILE "passwords.txt"
+//#define USERNAMES_FILE "usernames.txt"
+//#define PASSWORDS_FILE "passwords.txt"
+#define NEXT_ID "id.txt"
+#define PROFILE_FILE "profiles.bin"
 #define MAX_BUSINESS_NAME 50
 #define MAX_NAME_LENGTH 20
 #define ADDRESS_LENGTH 100
 #define MAX_NUM_BUSINESS 100
 #define MAX_REVIEW_LENGTH 250
+#define MAX_NUM_USERS 500
 #define MAX_NUM_REVIEWS 20
 #define NUM_TAGS 2
 
@@ -42,11 +46,12 @@ static const WORD k[64] = {
 // sha-256 stuff end
 
 
-char tags[NUM_TAGS][20] = {"Restaurant","Market"};
+char tags[NUM_TAGS][20] = {"verified","restaurant","market"};
 enum tags{
     Verified = 1,
     Restaurant,
-    Market
+    Market,
+    END
 };
 enum userStatus{
     guest,
@@ -62,8 +67,8 @@ struct review{
     char response[MAX_REVIEW_LENGTH];
 };
 struct profile{
-    char name[MAX_NAME_LENGTH];
     char userName[MAX_NAME_LENGTH];
+    char password[266];
     int id;
     int status;
 };
@@ -80,15 +85,17 @@ struct business{
 
 int loadBusinesses(struct business b[]);
 void displayBusiness(struct business b);
-//unimplemented
-void adminPage(struct profile user);
-//these two were causing problems, why are they structs? I had to change that
-void searchByName(struct business businesses[]);
-void searchByTag(struct business businesses[]);
+void encrypt (char input[],char stuck[]);
+struct profile* findProf(char name[]);
+struct business * searchByName(struct business businesses[]);
+void createBusiness(struct profile* p, struct business b[]);
 void logIn(struct profile *user);
 void guestView(struct business b);
+//unimplemented
+void adminPage(struct profile user);
+struct business * searchByTag(struct business businesses[]);
 void adminView(struct business b);
-void writeBusinesses();
+void listBusinesses(struct business list[]);
 void viewOwnerPage(struct business ownedBusiness);
 
 int main(){
@@ -215,7 +222,8 @@ int main(){
                         break;
                 }
             } else {
-                printf("4. QUIT\n");
+                printf("4. Apply for business\n");
+                printf("5. QUIT\n");
                 scanf("%d",&option);
                 switch(option){
                     case 1:
@@ -229,6 +237,9 @@ int main(){
                         break;
                     case 4:
                         break;
+                    case 5:
+                        createBusiness(&userPro, businesses);
+                        break;
                     default:
                         printf("Please enter a valid number");
                         break;
@@ -236,14 +247,126 @@ int main(){
             }
         }
         printf("\n");
-
-    }while(!(option == 4 && (userPro.status == businessOwner || userPro.status == admin))&& (option != 5));
+    }while(!(option == 4 && ( &userPro == NULL )) && (option != 5));
 
 }
 
+struct business * searchByTag(struct business businesses[]){
+    int matches[10];
+    int count = 1;
+    char buffer[20];
+    int fTagNum = 1;
+    do{
+        printf("Add a tag or type quit to search\n");
+        fscanf(stdin,20,buffer);
+        int tagNum = get_enum_value(buffer);
+        if(tagNum>1)
+            fTagNum += pow(2,tagNum);
+        else if(strncmp(buffer,"quit",4))
+            printf("invalid tag, try again\n");
+        printf("All tags currently applied:\n");
+        for(int i = 0; i < NUM_TAGS; i++){
+            if(tagNum%2)
+                printf("%s ",tags[i]);
+            tagNum /= 2;
+        }
+    }while(!strncmp(buffer,"quit",4));
+    for (int i = 0; i<sizeof(businesses)/sizeof(struct business);i++){
+        int flag = 1;
+        int tTagNum1 = businesses[i].tagCode;
+        int tTagNum2 = fTagNum;
+        for(int i = 0; i < NUM_TAGS&&flag; i++){
+            if(!(fTagNum%2==tTagNum1%2))
+                flag--;
+            tTagNum1 /= 2;
+            tTagNum2 /= 2;
+        }
+        if (flag){
+            //list of the first 10 businesses
+            printf("%d) %s\n",count,businesses[i].busName);
+            matches[count]=i;
+            count++;
+        }
+        if (count==11||strcmp(businesses[i].busName,"")){
+            break;
+        }
+    }
+    if (count==1){
+        printf("We could not find any businesses matching that name.");
+        return NULL;
+    } else {
+        printf("Enter the number of the business you are looking for: \n");
+        int pick;
+        scanf("%d",&pick);
+        return &businesses[matches[pick]];
+    }
 
+}
+
+void createBusiness(struct profile* p, struct business b[]){
+    FILE* businessFile = fopen(BUSINESS_FILE,"ab");
+    if(businessFile == NULL){
+        printf("file failed to open");
+        return;
+    }
+    if(&b[MAX_NUM_BUSINESS-1] != NULL){
+        printf("Directory full, try again after we update");
+        return;
+    }
+    struct business placeHolder;
+    printf("What is the name of the business?");
+    fscanf(stdin,MAX_BUSINESS_NAME-1,placeHolder.busName);
+    printf("Where are you located?");
+    fscanf(stdin,ADDRESS_LENGTH-1,placeHolder.address);
+    placeHolder.ownerId = p->id;
+    strcpy(placeHolder.ownerName, p->userName);
+    placeHolder.rating = 5.0;
+    placeHolder.numReviews = 0;
+    char buffer[20];
+    do{
+        printf("Add a tag or type quit to stop\n");
+        fscanf(stdin,20,buffer);
+        int tagNum = get_enum_value(buffer);
+        if(tagNum>1)
+            placeHolder.tagCode += pow(2,tagNum);
+        else if(strncmp(buffer,"quit",4))
+            printf("invalid tag, try again\n");
+        printf("All tags currently applied:\n");
+        for(int i = 0; i < NUM_TAGS; i++){
+            if(tagNum%2)
+                printf("%s ",tags[i]);
+            tagNum /= 2;
+        }
+    }while(!strncmp(buffer,"quit",4));
+    printf("Thank you for adding your business, please wait while we approve it");
+    p->status = businessOwner;
+    printf("\n\n");
+    fwrite(&placeHolder,sizeof(struct business),1,businessFile);
+    FILE* checkList = fopen(PROFILE_FILE,"rb+");
+    if(checkList == NULL){
+        printf("file failed to open");
+        return;
+    }
+    struct profile tempProf;
+    fread(&tempProf,sizeof(struct profile),1,checkList);
+    for(int i = 0; i < MAX_NUM_USERS;i++){
+        if(!strcmp(p->userName,tempProf.userName))
+            break;
+        fread(&tempProf,sizeof(struct profile),1,checkList);
+    }
+    fseek(checkList,-1*sizeof(struct profile),SEEK_CUR);
+    fwrite(p,sizeof(struct profile),1,checkList);
+    fclose(checkList);
+    fclose(businessFile);
+}
+enum tags get_enum_value(char * val) {
+    for (int i = 1; i < END-1; i++)
+        if (!strcmp(tags[i], val))
+            return i;
+    return -1;
+ }
 int loadBusinesses(struct business b[]){
-    FILE* busFile = fopen(BUSINESS_FILE,"r");
+    FILE* busFile = fopen(BUSINESS_FILE,"rb");
     if(busFile == NULL){
         printf("file failed to open");
         return 0;
@@ -283,8 +406,43 @@ void adminPage(struct profile user){
     //4. quit
 }
 
+struct profile* findProf(char name[]){
+    FILE* checkList = fopen(PROFILE_FILE,"r");
+    if(checkList == NULL){
+        printf("file failed to open");
+        return NULL;
+    }
+    struct profile tempProf[MAX_NUM_USERS];
+    fread(tempProf,sizeof(struct profile),MAX_NUM_USERS,checkList);
+    fclose(checkList);
+    for(int i = 0; i < MAX_NUM_USERS;i++){
+        if(!strcmp(name,tempProf[i].userName))
+            return tempProf;
+    }
+    return NULL;
+}
 
-void searchByName (struct business allofthem[]){
+void encrypt (char input[],char stuck[]){
+    char die[256];
+    memset(stuck, 0, sizeof stuck);
+    int length = strlen(input);
+    SHA256_CTX context;
+    unsigned char md[32];
+    sha256_init(&context);
+    sha256_update(&context, (unsigned char *)input, length);
+    sha256_final(&context, md);
+    
+    int i;
+    for(i = 0; i < sizeof(md); i++) {
+        //printf("%0x", md[i]);
+        sprintf(die,"%0x", md[i]);
+        strcat(stuck,die);
+    }
+    //printf("\n");
+    
+}
+
+struct business * searchByName (struct business allofthem[]){
     char searchfor[100];
     int matches[10];
     int count = 1;
@@ -294,7 +452,7 @@ void searchByName (struct business allofthem[]){
     //struct business allofthem[MAX_NUM_BUSINESS]; 
     //opens up the business bin and puts them all in a big array so I can look at them
     //loadBusinesses(allofthem);//these arestill here from before integration
-    for (int i = 0; i<sizeof(allofthem);i++){
+    for (int i = 0; i<sizeof(allofthem)/sizeof(struct business);i++){
         if (!strcmp(allofthem[i].busName,searchfor)){
             //list of the first 10 businesses
             printf("%d) %s\n",count,allofthem[i].busName);
@@ -307,11 +465,12 @@ void searchByName (struct business allofthem[]){
     }
     if (count==1){
         printf("We could not find any businesses matching that name.");
+        return NULL;
     } else {
         printf("Enter the number of the business you are looking for: \n");
         int pick;
         scanf("%d",&pick);
-        guestView(allofthem[matches[pick]]);
+        return &allofthem[matches[pick]];
     }
 }
 
@@ -339,6 +498,10 @@ void guestView (struct business b){
         strcpy(b.reviews[b.numReviews].body,body);
         b.reviews[b.numReviews].starRating = rating;
         b.numReviews++;
+        int starSum = 0;
+        for(int i = 0; i < b.numReviews; i++)
+            starSum += b.reviews[i].starRating;
+        b.rating = starSum / b.numReviews;
     }
         
 }
@@ -351,7 +514,7 @@ bool compare(struct profile *user)
     int signup;
     
     
-    FILE *list = fopen(USERNAMES_FILE,"a"); //creates it if it doesn't exist
+    /*FILE *list = fopen(USERNAMES_FILE,"a"); //creates it if it doesn't exist
     fclose(list);
     list = fopen(PASSWORDS_FILE,"a"); //creates it if it doesn't exist
     fclose(list);
@@ -367,7 +530,7 @@ bool compare(struct profile *user)
             while(fgets(storage,sizeof(storage),list) != NULL) { //if list have content, get it line by line and compare it to the username.
                 if (*storage == '\n') //can't remember what this bit does
                     continue;
-                sscanf(storage, "%[^\n]", storage);
+                sscanf(storage, "%256[^\n]", storage);
                 //printf("storage:%s\n",storage); // for debug, checks the current value of storage
                 //printf("username:%s\n",username); //for debug, checks the value of username
         
@@ -388,30 +551,9 @@ bool compare(struct profile *user)
             if (c == '\n') // Increment count if this character is newline
                 count = count + 1;
         return count;
-    }
-    
+    }*/
     char stuck[266];
-    
-    void encrypt (char input[]){
-        char die[256];
-        memset(stuck, 0, sizeof stuck);
-        int length = strlen(input);
-        SHA256_CTX context;
-        unsigned char md[32];
-        sha256_init(&context);
-        sha256_update(&context, (unsigned char *)input, length);
-        sha256_final(&context, md);
-        
-        int i;
-        for(i = 0; i < sizeof(md); i++) {
-            //printf("%0x", md[i]);
-            sprintf(die,"%0x", md[i]);
-            strcat(stuck,die);
-        }
-        //printf("\n");
-        
-    }
-    encrypt("abc");
+    encrypt("abc",stuck);
     //printf("%s",stuck);
     
     
@@ -424,36 +566,46 @@ bool compare(struct profile *user)
     scanf("%s",username);
     printf("Enter password: ");
     scanf("%s",password);
+    encrypt(password,stuck);
     signup--;
 
     if(signup){
-        if(checkfile(list,username)){
+        if(findProf(username)!=NULL){
             printf("That username is taken!\n");
             return true;
         } else {
-            fclose(list);
-            list = fopen(USERNAMES_FILE,"a");
-            fprintf(list,"%s\n",username); //add username to list
-            fclose(list);
-            list = fopen(USERNAMES_FILE,"r");
-            tempid = numlines(list); //use number of lines to get id (this means they are logged in)
-            
             //encrypt password; still needs to happen
-            encrypt(password);
             //printf("%s",stuck);
             
-            fclose(list);
-            list = fopen(PASSWORDS_FILE,"a");
-            fprintf(list,"%s\n",stuck); //add password to different list
-            fclose(list);
-            list = fopen(USERNAMES_FILE,"r");
-            memcpy((user->userName),username,sizeof(username)); //add username and id values to the user structure
-            user->id = tempid; //add username and id values to the user structure
+            struct profile tempUser;
+            strcpy(tempUser.userName,username);
+            tempUser.status = guest;
+            FILE* nextid = fopen(NEXT_ID,"r+");
+            if(nextid == NULL){
+                printf("file failed to open");
+                return true;
+            }
+            fscanf(nextid,"%d",&(tempUser.id));
+            fseek(nextid,0,SEEK_SET);
+            fprintf(nextid,"%d",tempUser.id+1);
+            fclose(nextid);
             printf("Congratulations! ");
             return false;
         }
     } else {
-        checkfile(list,username); //find their username in the list
+        struct profile* tempProf = findProf(username);
+        if(tempProf == NULL){
+            printf("Sorry, we couldn't fine your account\n");
+            return true;
+        }
+        if(!strcmp(tempProf->password,password)){
+            user = tempProf;
+            return false;
+        } else {
+            printf("The username or password was incorrect.\n");
+            return true;
+        }
+        /*checkfile(list,username); //find their username in the list
         tempid=linenumber; //get id
         
         int count = 0;
@@ -463,7 +615,7 @@ bool compare(struct profile *user)
         list = fopen(PASSWORDS_FILE,"r");
         while (fgets(line, sizeof line, list) != NULL) {//retrieve password from list with corresponding line number
             if (count == tempid) {
-                sscanf(line, "%[^\n]", temppass); //i'm so cool
+                sscanf(line, "%256[^\n]", temppass); //i'm so cool
                 count++;
             } else {count++;}
         }
@@ -479,7 +631,7 @@ bool compare(struct profile *user)
         } else {
             printf("The username or password was incorrect.\n");
             return true;
-        }
+        }*/
     }
 }
 
