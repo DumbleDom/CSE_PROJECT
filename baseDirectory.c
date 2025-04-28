@@ -18,7 +18,7 @@
 #define MAX_REVIEW_LENGTH 250
 #define MAX_NUM_USERS 500
 #define MAX_NUM_REVIEWS 20
-#define NUM_TAGS 2
+#define NUM_TAGS 3
 
 
 // sha-256 stuff start
@@ -71,7 +71,7 @@ struct profile{
     char password[266];
     int id;
     int status;
-};
+}userProf, placeHold;
 struct business{
     char busName[MAX_BUSINESS_NAME];
     char address[ADDRESS_LENGTH];
@@ -81,19 +81,19 @@ struct business{
     int tagCode;
     float rating;
     int numReviews;
-};
+}businesses[MAX_NUM_BUSINESS];
 
-int loadBusinesses(struct business b[]);
+int loadBusinesses();
 void displayBusiness(struct business b);
-void encrypt (char input[],char stuck[]);
-struct profile* findProf(char name[]);
-struct business * searchByName(struct business businesses[]);
-void createBusiness(struct profile* p, struct business b[]);
-void logIn(struct profile *user);
+void encrypt (char input[],char stuck[], int sizeOfStuck);
+void findProf(char name[]);
+struct business * searchByName();
+void createBusiness();
+void logIn();
 void guestView(struct business b);
-struct business * searchByTag(struct business businesses[]);
+struct business * searchByTag();
 //unimplemented
-void adminPage(struct profile user);
+void adminPage();
 void adminView(struct business b);
 void viewOwnerPage(struct business ownedBusiness);
 
@@ -104,10 +104,8 @@ int main(){
     printf("---------------------------------\n\n");
 
     //printf("Would you like to log in(y/n)?"); To be implemented
-    struct profile userPro;
     int option;
-    struct business businesses[MAX_NUM_BUSINESS];
-    if(!loadBusinesses(businesses)){
+    if(!loadBusinesses()){
         return 0;
     }
 
@@ -134,26 +132,27 @@ int main(){
             //check to see if user has admin status
             //if so, open adminPage
         //6. exit
+        struct business b;
         printf("Enter a nummberr to proceed\n");
         printf("1. Search for a shop by name\n");
         printf("2. Seach for shops using tags\n");
-        if(&userPro == NULL){
+        if(&userProf == NULL){
             printf("3. Log In\n");
             printf("4. QUIT");
             scanf("%d",&option);
             switch(option){
                 case 1:
-                    struct business b = *searchByName(businesses);
+                    b = *searchByName();
                     if(&b != NULL);
                         guestView(b);
                     break;
                 case 2:
-                    struct business b = *searchByTag(businesses);
+                    b = *searchByTag();
                     if(&b != NULL);
                         guestView(b);
                     break;
                 case 3:
-                    logIn(&userPro);
+                    logIn(&userProf);
                     break;
                 case 4:
                     break;
@@ -163,23 +162,23 @@ int main(){
             }
         } else {
             printf("3. Log out\n");
-            if(userPro.status == businessOwner){
+            if(userProf.status == businessOwner){
                 printf("4. View you business page\n");
                 printf("5. QUIT\n");
                 scanf("%d",&option);
                 switch(option){
                     case 1:
-                        struct business b = *searchByName(businesses);
+                        b = *searchByName();
                         if(&b != NULL);
                             guestView(b);
                         break;
                     case 2:
-                        struct business b = *searchByTag(businesses);
+                        b = *searchByTag();
                         if(&b != NULL);
                             guestView(b);
                         break;
                     case 3:
-                        &userPro == NULL;
+                        &userProf == NULL;
                         break;
                     case 4:
                         //search for business owned by user
@@ -188,7 +187,7 @@ int main(){
                         int found = 0;
                         int index = -1;
                         for(int i = 0; i < sizeof(businesses)/sizeof(businesses[0]);i++){
-                            if(userPro.id == businesses[i].ownerId){
+                            if(userProf.id == businesses[i].ownerId){
                                 found = 1;
                                 index = i;
                             }
@@ -205,26 +204,26 @@ int main(){
                         printf("Please enter a valid number");
                         break;
                 }
-            } else if (userPro.status == admin){
+            } else if (userProf.status == admin){
                 printf("4. Enter Admin view\n");
                 printf("5. QUIT\n");
                 scanf("%d",&option);
                 switch(option){
                     case 1:
-                        struct business b = *searchByName(businesses);
+                        b = *searchByName();
                         if(&b != NULL);
                             guestView(b);
                         break;
                     case 2:
-                        struct business b = *searchByTag(businesses);
+                        b = *searchByTag();
                         if(&b != NULL);
                             guestView(b);
                         break;
                     case 3:
-                        &userPro == NULL;
+                        &userProf == NULL;
                         break;
                     case 4:
-                        adminPage(userPro);
+                        adminPage(userProf);
                         break;
                     case 5:
                         break;
@@ -238,22 +237,22 @@ int main(){
                 scanf("%d",&option);
                 switch(option){
                     case 1:
-                        struct business b = *searchByName(businesses);
+                        b = *searchByName();
                         if(&b != NULL);
                             guestView(b);
                         break;
                     case 2:
-                        struct business b = *searchByTag(businesses);
+                        b = *searchByTag();
                         if(&b != NULL);
                             guestView(b);
                         break;
                     case 3:
-                        &userPro == NULL;
+                        &userProf == NULL;
                         break;
                     case 4:
                         break;
                     case 5:
-                        createBusiness(&userPro, businesses);
+                        createBusiness(businesses);
                         break;
                     default:
                         printf("Please enter a valid number");
@@ -262,18 +261,223 @@ int main(){
             }
         }
         printf("\n");
-    }while(!(option == 4 && ( &userPro == NULL )) && (option != 5));
+    }while(!(option == 4 && ( &userProf == NULL )) && (option != 5));
 
 }
 
-struct business * searchByTag(struct business businesses[]){
+int get_enum_value(char * val) {
+    for (int i = 1; i < END-1; i++)
+        if (!strcmp(tags[i], val))
+            return i;
+    return -1;
+ }
+
+
+void createBusiness(){
+    FILE* businessFile = fopen(BUSINESS_FILE,"ab");
+    if(businessFile == NULL){
+        printf("file failed to open");
+        return;
+    }
+    if(&businesses[MAX_NUM_BUSINESS-1] != NULL){
+        printf("Directory full, try again after we update");
+        return;
+    }
+    struct business placeHolder;
+    printf("What is the name of the business?");
+    fscanf(stdin,"%s",placeHolder.busName);
+    printf("Where are you located?");
+    fscanf(stdin,"%s",placeHolder.address);
+    placeHolder.ownerId = userProf.id;
+    strcpy(placeHolder.ownerName, userProf.userName);
+    placeHolder.rating = 5.0;
+    placeHolder.numReviews = 0;
+    char buffer[20];
+    do{
+        printf("Add a tag or type quit to stop\n");
+        fscanf(stdin,"%s",buffer);
+        int tagNum = get_enum_value(buffer);
+        if(tagNum>1)
+            placeHolder.tagCode += pow(2,tagNum);
+        else if(strncmp(buffer,"quit",4))
+            printf("invalid tag, try again\n");
+        printf("All tags currently applied:\n");
+        for(int i = 0; i < NUM_TAGS; i++){
+            if(tagNum%2)
+                printf("%s ",tags[i]);
+            tagNum /= 2;
+        }
+    }while(!strncmp(buffer,"quit",4));
+    printf("Thank you for adding your business, please wait while we approve it");
+    userProf.status = businessOwner;
+    printf("\n\n");
+    fwrite(&placeHolder,sizeof(struct business),1,businessFile);
+    FILE* checkList = fopen(PROFILE_FILE,"rb+");
+    if(checkList == NULL){
+        printf("file failed to open");
+        return;
+    }
+    struct profile tempProf;
+    fread(&tempProf,sizeof(struct profile),1,checkList);
+    for(int i = 0; i < MAX_NUM_USERS;i++){
+        if(!strcmp(userProf.userName,tempProf.userName))
+            break;
+        fread(&tempProf,sizeof(struct profile),1,checkList);
+    }
+    fseek(checkList,-1*sizeof(struct profile),SEEK_CUR);
+    fwrite(&userProf,sizeof(struct profile),1,checkList);
+    fclose(checkList);
+    fclose(businessFile);
+    loadBusinesses();
+}
+int loadBusinesses(){
+    FILE* busFile = fopen(BUSINESS_FILE,"rb");
+    if(busFile == NULL){
+        printf("file failed to open");
+        return 0;
+    }
+    fread(businesses,sizeof(struct business),MAX_NUM_BUSINESS,busFile);
+    fclose(busFile);
+    return 1;
+}
+
+void displayBusiness(struct business b){
+    printf("%s\nOwned by: %s\n%s\n%.1f\nTags:",b.busName,b.ownerName,b.address,b.rating);
+    int tagNum = b.tagCode;
+    for(int i = 0; i < NUM_TAGS; i++){
+        if(tagNum%2)
+            printf("%s ",tags[i]);
+        tagNum /= 2;
+    }
+    printf("\n\n");
+}
+
+void viewOwnerPage(struct business ownedBusiness){
+    //print statement elling user what page they're editing
+    //enter loop to 
+    //1. Edit Business description and tags(other than verified)
+    //2. View all reviews
+        //give option to respond to any review
+    //3. exit
+}
+
+void adminPage(struct profile user){
+    //Options to
+    //1. search shops same way as guest
+    //2. Search by tag
+        //both lead to admin veiw of shop rather than guest view
+        //can edit shop, remove reviews, and verification status
+    //3. view unverified shops
+    //4. quit
+}
+
+void findProf(char name[]){
+    FILE* checkList = fopen(PROFILE_FILE,"r");
+    placeHold.id = -1;
+    if(checkList == NULL){
+        printf("file failed to open");
+    }
+    struct profile tempProf[MAX_NUM_USERS];
+    fread(tempProf,sizeof(struct profile),MAX_NUM_USERS,checkList);
+    fclose(checkList);
+    for(int i = 0; i < MAX_NUM_USERS;i++){
+        if(!strcmp(name,tempProf[i].userName))
+            placeHold = tempProf[i];
+    }
+
+}
+
+void encrypt (char input[],char stuck[], int sizeOfStuck){
+    char die[256];
+    memset(stuck, 0, sizeOfStuck);
+    int length = strlen(input);
+    SHA256_CTX context;
+    unsigned char md[32];
+    sha256_init(&context);
+    sha256_update(&context, (unsigned char *)input, length);
+    sha256_final(&context, md);
+    
+    int i;
+    for(i = 0; i < sizeof(md); i++) {
+        //printf("%0x", md[i]);
+        sprintf(die,"%0x", md[i]);
+        strcat(stuck,die);
+    }
+    //printf("\n");
+    
+}
+
+struct business * searchByName (){
+    char searchfor[100];
+    int matches[10];
+    int count = 1;
+    printf("Enter the name of the business you are looking for: \n");
+    fgets(searchfor, sizeof(searchfor), stdin);
+    searchfor[strlen(searchfor)-1] = '\0'; // cuts the \n off the input
+    //struct business allofthem[MAX_NUM_BUSINESS]; 
+    //opens up the business bin and puts them all in a big array so I can look at them
+    //loadBusinesses(allofthem);//these arestill here from before integration
+    for (int i = 0; i<sizeof(businesses)/sizeof(struct business);i++){
+        if (!strcmp(businesses[i].busName,searchfor)){
+            //list of the first 10 businesses
+            printf("%d) %s\n",count,businesses[i].busName);
+            matches[count]=i;
+            count++;
+        }
+        if (count==11||strcmp(businesses[i].busName,"")){
+            break;
+        }
+    }
+    if (count==1){
+        printf("We could not find any businesses matching that name.");
+        return NULL;
+    } else {
+        printf("Enter the number of the business you are looking for: \n");
+        int pick;
+        scanf("%d",&pick);
+        return &businesses[matches[pick]];
+    }
+}
+
+void guestView (struct business b){
+    int critic;
+    char body[MAX_REVIEW_LENGTH];
+    char author[MAX_NAME_LENGTH];
+    int rating;
+    displayBusiness(b);
+    printf("Leave a review? 1 for yes, 2 for no\n");
+    scanf("%d", &critic);
+    if (critic != 1){
+        printf("Understood.");
+    } else {
+        printf("Enter your review: \n");
+        fgets(body,sizeof(body),stdin); //this one is hallucinating
+        fgets(body,sizeof(body),stdin); //this one is actually doing important stuff
+        printf("Enter your name: \n");
+        fgets(author,sizeof(author),stdin);
+        printf("Enter a number of stars from 1 to 5: \n");
+        scanf("%d",&rating);
+        //if ((b.numReviews)==NULL){b.numReviews=0;}
+        //printf("%s",b.reviews[b.numReviews].author);
+        strcpy(b.reviews[b.numReviews].author,author);
+        strcpy(b.reviews[b.numReviews].body,body);
+        b.reviews[b.numReviews].starRating = rating;
+        b.numReviews++;
+        int starSum = 0;
+        for(int i = 0; i < b.numReviews; i++)
+            starSum += b.reviews[i].starRating;
+        b.rating = starSum / b.numReviews;
+    }
+        
+}
+struct business * searchByTag(){
     int matches[10];
     int count = 1;
     char buffer[20];
     int fTagNum = 1;
     do{
         printf("Add a tag or type quit to search\n");
-        fscanf(stdin,20,buffer);
+        fscanf(stdin,"%s",buffer);
         int tagNum = get_enum_value(buffer);
         if(tagNum>1)
             fTagNum += pow(2,tagNum);
@@ -318,210 +522,7 @@ struct business * searchByTag(struct business businesses[]){
 
 }
 
-void createBusiness(struct profile* p, struct business b[]){
-    FILE* businessFile = fopen(BUSINESS_FILE,"ab");
-    if(businessFile == NULL){
-        printf("file failed to open");
-        return;
-    }
-    if(&b[MAX_NUM_BUSINESS-1] != NULL){
-        printf("Directory full, try again after we update");
-        return;
-    }
-    struct business placeHolder;
-    printf("What is the name of the business?");
-    fscanf(stdin,MAX_BUSINESS_NAME-1,placeHolder.busName);
-    printf("Where are you located?");
-    fscanf(stdin,ADDRESS_LENGTH-1,placeHolder.address);
-    placeHolder.ownerId = p->id;
-    strcpy(placeHolder.ownerName, p->userName);
-    placeHolder.rating = 5.0;
-    placeHolder.numReviews = 0;
-    char buffer[20];
-    do{
-        printf("Add a tag or type quit to stop\n");
-        fscanf(stdin,20,buffer);
-        int tagNum = get_enum_value(buffer);
-        if(tagNum>1)
-            placeHolder.tagCode += pow(2,tagNum);
-        else if(strncmp(buffer,"quit",4))
-            printf("invalid tag, try again\n");
-        printf("All tags currently applied:\n");
-        for(int i = 0; i < NUM_TAGS; i++){
-            if(tagNum%2)
-                printf("%s ",tags[i]);
-            tagNum /= 2;
-        }
-    }while(!strncmp(buffer,"quit",4));
-    printf("Thank you for adding your business, please wait while we approve it");
-    p->status = businessOwner;
-    printf("\n\n");
-    fwrite(&placeHolder,sizeof(struct business),1,businessFile);
-    FILE* checkList = fopen(PROFILE_FILE,"rb+");
-    if(checkList == NULL){
-        printf("file failed to open");
-        return;
-    }
-    struct profile tempProf;
-    fread(&tempProf,sizeof(struct profile),1,checkList);
-    for(int i = 0; i < MAX_NUM_USERS;i++){
-        if(!strcmp(p->userName,tempProf.userName))
-            break;
-        fread(&tempProf,sizeof(struct profile),1,checkList);
-    }
-    fseek(checkList,-1*sizeof(struct profile),SEEK_CUR);
-    fwrite(p,sizeof(struct profile),1,checkList);
-    fclose(checkList);
-    fclose(businessFile);
-}
-enum tags get_enum_value(char * val) {
-    for (int i = 1; i < END-1; i++)
-        if (!strcmp(tags[i], val))
-            return i;
-    return -1;
- }
-int loadBusinesses(struct business b[]){
-    FILE* busFile = fopen(BUSINESS_FILE,"rb");
-    if(busFile == NULL){
-        printf("file failed to open");
-        return 0;
-    }
-    fread(b,sizeof(struct business),MAX_NUM_BUSINESS,busFile);
-    fclose(busFile);
-    return 1;
-}
-
-void displayBusiness(struct business b){
-    printf("%s\nOwned by: %s\n%s\n%.1f\nTags:",b.busName,b.ownerName,b.address,b.rating);
-    int tagNum = b.tagCode;
-    for(int i = 0; i < NUM_TAGS; i++){
-        if(tagNum%2)
-            printf("%s ",tags[i]);
-        tagNum /= 2;
-    }
-    printf("\n\n");
-}
-
-void viewOwnerPage(struct business ownedBusiness){
-    //print statement elling user what page they're editing
-    //enter loop to 
-    //1. Edit Business description and tags(other than verified)
-    //2. View all reviews
-        //give option to respond to any review
-    //3. exit
-}
-
-void adminPage(struct profile user){
-    //Options to
-    //1. search shops same way as guest
-    //2. Search by tag
-        //both lead to admin veiw of shop rather than guest view
-        //can edit shop, remove reviews, and verification status
-    //3. view unverified shops
-    //4. quit
-}
-
-struct profile* findProf(char name[]){
-    FILE* checkList = fopen(PROFILE_FILE,"r");
-    if(checkList == NULL){
-        printf("file failed to open");
-        return NULL;
-    }
-    struct profile tempProf[MAX_NUM_USERS];
-    fread(tempProf,sizeof(struct profile),MAX_NUM_USERS,checkList);
-    fclose(checkList);
-    for(int i = 0; i < MAX_NUM_USERS;i++){
-        if(!strcmp(name,tempProf[i].userName))
-            return tempProf;
-    }
-    return NULL;
-}
-
-void encrypt (char input[],char stuck[]){
-    char die[256];
-    memset(stuck, 0, sizeof stuck);
-    int length = strlen(input);
-    SHA256_CTX context;
-    unsigned char md[32];
-    sha256_init(&context);
-    sha256_update(&context, (unsigned char *)input, length);
-    sha256_final(&context, md);
-    
-    int i;
-    for(i = 0; i < sizeof(md); i++) {
-        //printf("%0x", md[i]);
-        sprintf(die,"%0x", md[i]);
-        strcat(stuck,die);
-    }
-    //printf("\n");
-    
-}
-
-struct business * searchByName (struct business allofthem[]){
-    char searchfor[100];
-    int matches[10];
-    int count = 1;
-    printf("Enter the name of the business you are looking for: \n");
-    fgets(searchfor, sizeof(searchfor), stdin);
-    searchfor[strlen(searchfor)-1] = '\0'; // cuts the \n off the input
-    //struct business allofthem[MAX_NUM_BUSINESS]; 
-    //opens up the business bin and puts them all in a big array so I can look at them
-    //loadBusinesses(allofthem);//these arestill here from before integration
-    for (int i = 0; i<sizeof(allofthem)/sizeof(struct business);i++){
-        if (!strcmp(allofthem[i].busName,searchfor)){
-            //list of the first 10 businesses
-            printf("%d) %s\n",count,allofthem[i].busName);
-            matches[count]=i;
-            count++;
-        }
-        if (count==11||strcmp(allofthem[i].busName,"")){
-            break;
-        }
-    }
-    if (count==1){
-        printf("We could not find any businesses matching that name.");
-        return NULL;
-    } else {
-        printf("Enter the number of the business you are looking for: \n");
-        int pick;
-        scanf("%d",&pick);
-        return &allofthem[matches[pick]];
-    }
-}
-
-void guestView (struct business b){
-    int critic;
-    char body[MAX_REVIEW_LENGTH];
-    char author[MAX_NAME_LENGTH];
-    int rating;
-    displayBusiness(b);
-    printf("Leave a review? 1 for yes, 2 for no\n");
-    scanf("%d", &critic);
-    if (critic != 1){
-        printf("Understood.");
-    } else {
-        printf("Enter your review: \n");
-        fgets(body,sizeof(body),stdin); //this one is hallucinating
-        fgets(body,sizeof(body),stdin); //this one is actually doing important stuff
-        printf("Enter your name: \n");
-        fgets(author,sizeof(author),stdin);
-        printf("Enter a number of stars from 1 to 5: \n");
-        scanf("%d",&rating);
-        //if ((b.numReviews)==NULL){b.numReviews=0;}
-        //printf("%s",b.reviews[b.numReviews].author);
-        strcpy(b.reviews[b.numReviews].author,author);
-        strcpy(b.reviews[b.numReviews].body,body);
-        b.reviews[b.numReviews].starRating = rating;
-        b.numReviews++;
-        int starSum = 0;
-        for(int i = 0; i < b.numReviews; i++)
-            starSum += b.reviews[i].starRating;
-        b.rating = starSum / b.numReviews;
-    }
-        
-}
-
-bool compare(struct profile *user)
+bool compare()
 {
     char username[MAX_NAME_LENGTH];
     char password[256];
@@ -568,7 +569,7 @@ bool compare(struct profile *user)
         return count;
     }*/
     char stuck[266];
-    encrypt("abc",stuck);
+    encrypt("abc",stuck,sizeof(stuck));
     //printf("%s",stuck);
     
     
@@ -581,11 +582,11 @@ bool compare(struct profile *user)
     scanf("%s",username);
     printf("Enter password: ");
     scanf("%s",password);
-    encrypt(password,stuck);
+    encrypt(password,stuck,sizeof(stuck));
     signup--;
 
     if(signup){
-        if(findProf(username)!=NULL){
+        if(placeHold.id != -1){
             printf("That username is taken!\n");
             return true;
         } else {
@@ -608,13 +609,13 @@ bool compare(struct profile *user)
             return false;
         }
     } else {
-        struct profile* tempProf = findProf(username);
-        if(tempProf == NULL){
+        findProf(username);
+        if(placeHold.id == -1){
             printf("Sorry, we couldn't fine your account\n");
             return true;
         }
-        if(!strcmp(tempProf->password,password)){
-            user = tempProf;
+        if(!strcmp(placeHold.password,password)){
+            userProf = placeHold;
             return false;
         } else {
             printf("The username or password was incorrect.\n");
@@ -650,8 +651,8 @@ bool compare(struct profile *user)
     }
 }
 
-void logIn(struct profile *user){
-    while(compare(user)){
+void logIn(){
+    while(compare()){
         
     }
 }
