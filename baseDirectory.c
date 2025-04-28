@@ -143,10 +143,10 @@ int main(){
             scanf("%d",&option);
             switch(option){
                 case 1:
-                    searchByName(businesses);
+                    guestView(*searchByName(businesses));
                     break;
                 case 2:
-                    searchByTag(businesses);
+                    guestView(*searchByTag(businesses));
                     break;
                 case 3:
                     logIn(&userPro);
@@ -165,10 +165,10 @@ int main(){
                 scanf("%d",&option);
                 switch(option){
                     case 1:
-                        searchByName(businesses);
+                        guestView(*searchByName(businesses));
                         break;
                     case 2:
-                        searchByTag(businesses);
+                        guestView(*searchByTag(businesses));
                         break;
                     case 3:
                         &userPro == NULL;
@@ -203,10 +203,10 @@ int main(){
                 scanf("%d",&option);
                 switch(option){
                     case 1:
-                        searchByName(businesses);
+                        guestView(*searchByName(businesses));
                         break;
                     case 2:
-                        searchByTag(businesses);
+                        guestView(*searchByTag(businesses));
                         break;
                     case 3:
                         &userPro == NULL;
@@ -226,10 +226,10 @@ int main(){
                 scanf("%d",&option);
                 switch(option){
                     case 1:
-                        searchByName(businesses);
+                        guestView(*searchByName(businesses));
                         break;
                     case 2:
-                        searchByTag(businesses);
+                        guestView(*searchByTag(businesses));
                         break;
                     case 3:
                         &userPro == NULL;
