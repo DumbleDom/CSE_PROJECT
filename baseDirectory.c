@@ -3,12 +3,9 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <memory.h>
-#include <math.h>
 #include "sha256.h"
 
 #define BUSINESS_FILE "businesses.bin"
-//#define USERNAMES_FILE "usernames.txt"
-//#define PASSWORDS_FILE "passwords.txt"
 #define NEXT_ID "id.txt"
 #define PROFILE_FILE "profiles.bin"
 #define MAX_BUSINESS_NAME 50
@@ -84,6 +81,7 @@ struct business{
 }businesses[MAX_NUM_BUSINESS];
 
 int loadBusinesses();
+double pow(double x, double y);
 void displayBusiness(struct business b);
 void encrypt (char input[],char stuck[], int sizeOfStuck);
 void findProf(char name[]);
@@ -103,7 +101,15 @@ int main(){
     printf("- Better Better Business Bureau -\n");
     printf("---------------------------------\n\n");
 
-    //printf("Would you like to log in(y/n)?"); To be implemented
+    printf("Would you like to log in(y/n)?");
+    {
+        char a;
+        scanf("%c",&a);
+        if(a=='y')
+            logIn();
+        else
+            userProf.id = -1;
+    }
     int option;
     if(!loadBusinesses()){
         return 0;
@@ -133,10 +139,10 @@ int main(){
             //if so, open adminPage
         //6. exit
         struct business b;
-        printf("Enter a nummberr to proceed\n");
+        printf("Enter a nummber to proceed\n");
         printf("1. Search for a shop by name\n");
         printf("2. Seach for shops using tags\n");
-        if(&userProf == NULL){
+        if(userProf.id == -1){
             printf("3. Log In\n");
             printf("4. QUIT");
             scanf("%d",&option);
@@ -178,7 +184,7 @@ int main(){
                             guestView(b);
                         break;
                     case 3:
-                        &userProf == NULL;
+                        userProf.id == -1;
                         break;
                     case 4:
                         //search for business owned by user
@@ -220,7 +226,7 @@ int main(){
                             guestView(b);
                         break;
                     case 3:
-                        &userProf == NULL;
+                        userProf.id == -1;
                         break;
                     case 4:
                         adminPage(userProf);
@@ -247,7 +253,7 @@ int main(){
                             guestView(b);
                         break;
                     case 3:
-                        &userProf == NULL;
+                        userProf.id == -1;
                         break;
                     case 4:
                         break;
@@ -261,7 +267,7 @@ int main(){
             }
         }
         printf("\n");
-    }while(!(option == 4 && ( &userProf == NULL )) && (option != 5));
+    }while(!(option == 4 && ( userProf.id == -1 )) && (option != 5));
 
 }
 
@@ -386,7 +392,12 @@ void findProf(char name[]){
     }
 
 }
-
+double pow(double x, double y){
+    int result = 1;
+    for(int i = 0; i < y; i++)
+        result *= x;
+    return result;
+}
 void encrypt (char input[],char stuck[], int sizeOfStuck){
     char die[256];
     memset(stuck, 0, sizeOfStuck);
@@ -480,7 +491,7 @@ struct business * searchByTag(){
         fscanf(stdin,"%s",buffer);
         int tagNum = get_enum_value(buffer);
         if(tagNum>1)
-            fTagNum += pow(2,tagNum);
+            fTagNum += (pow(2,tagNum));
         else if(strncmp(buffer,"quit",4))
             printf("invalid tag, try again\n");
         printf("All tags currently applied:\n");
