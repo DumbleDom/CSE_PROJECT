@@ -78,22 +78,25 @@ struct business{
     int tagCode;
     float rating;
     int numReviews;
-}businesses[MAX_NUM_BUSINESS];
+}businesses[MAX_NUM_BUSINESS], *foundBusiness;
 
-int loadBusinesses();
-double pow(double x, double y);
-void displayBusiness(struct business b);
+//Profile stuff(Connor)
+void logIn();
 void encrypt (char input[],char stuck[], int sizeOfStuck);
 void findProf(char name[]);
-struct business * searchByName();
-void createBusiness();
-void logIn();
-void guestView(struct business b);
-struct business * searchByTag();
-void adminPage();
-void adminView(struct business *b);
-void viewOwnerPage(struct business *ownedBusiness);
+//Search by Name(Connor)
+void searchByName();
+int loadBusinesses();
+int pow(int x, int y);
 void writeBusinesses();
+void displayBusiness(struct business b);
+void createBusiness();
+struct business* guestView();
+void adminView();
+void adminPage();
+void viewOwnerPage(struct business *ownedBusiness);
+//Fully checked
+void searchByTag();
 
 int main(){
     printf("---------------------------------\n");
@@ -138,24 +141,24 @@ int main(){
             //check to see if user has admin status
             //if so, open adminPage
         //6. exit
-        struct business b;
-        printf("Enter a nummber to proceed\n");
+        struct business* b = NULL;
+        printf("Enter a number to proceed\n");
         printf("1. Search for a shop by name\n");
         printf("2. Seach for shops using tags\n");
         if(userProf.id == -1){
             printf("3. Log In\n");
-            printf("4. QUIT");
+            printf("4. QUIT\n");
             scanf("%d",&option);
             switch(option){
                 case 1:
-                    b = *searchByName();
-                    if(&b != NULL);
-                        guestView(b);
+                    searchByName();
+                    if(foundBusiness->tagCode != -1);
+                        guestView();
                     break;
                 case 2:
-                    b = *searchByTag();
-                    if(&b != NULL);
-                        guestView(b);
+                    searchByTag();
+                    if(foundBusiness->tagCode != -1);
+                        guestView();
                     break;
                 case 3:
                     logIn(&userProf);
@@ -174,17 +177,17 @@ int main(){
                 scanf("%d",&option);
                 switch(option){
                     case 1:
-                        b = *searchByName();
-                        if(&b != NULL);
-                            guestView(b);
+                        searchByName();
+                        if(foundBusiness->tagCode != -1);
+                            guestView();
                         break;
                     case 2:
-                        b = *searchByTag();
-                        if(&b != NULL);
-                            guestView(b);
+                        searchByTag();
+                        if(foundBusiness->tagCode != -1);
+                            guestView();
                         break;
                     case 3:
-                        userProf.id == -1;
+                        userProf.id = -1;
                         break;
                     case 4:
                         //search for business owned by user
@@ -216,17 +219,17 @@ int main(){
                 scanf("%d",&option);
                 switch(option){
                     case 1:
-                        b = *searchByName();
-                        if(&b != NULL);
-                            guestView(b);
+                        searchByName();
+                        if(foundBusiness->tagCode != -1);
+                            guestView();
                         break;
                     case 2:
-                        b = *searchByTag();
-                        if(&b != NULL);
-                            guestView(b);
+                        searchByTag();
+                        if(foundBusiness->tagCode != -1);
+                            guestView();
                         break;
                     case 3:
-                        userProf.id == -1;
+                        userProf.id = -1;
                         break;
                     case 4:
                         adminPage();
@@ -243,22 +246,22 @@ int main(){
                 scanf("%d",&option);
                 switch(option){
                     case 1:
-                        b = *searchByName();
-                        if(&b != NULL);
-                            guestView(b);
+                        searchByName();
+                        if(foundBusiness->tagCode != -1);
+                            guestView();
                         break;
                     case 2:
-                        b = *searchByTag();
-                        if(&b != NULL);
-                            guestView(b);
+                        searchByTag();
+                        if(foundBusiness->tagCode != -1);
+                            guestView();
                         break;
                     case 3:
-                        userProf.id == -1;
+                        userProf.id = -1;
                         break;
                     case 4:
+                        createBusiness(businesses);
                         break;
                     case 5:
-                        createBusiness(businesses);
                         break;
                     default:
                         printf("Please enter a valid number");
@@ -270,6 +273,13 @@ int main(){
     }while(!(option == 4 && ( userProf.id == -1 )) && (option != 5));
 
 }
+
+int get_enum_value(char * val) {
+    for (int i = 1; i < END-1; i++)
+        if (!strcmp(tags[i], val))
+            return i;
+    return -1;
+ }
 
 void viewOwnerPage(struct business* ownedBusiness) //Lisa
 //1. Edit Business description and tags(other than verified)
@@ -319,8 +329,28 @@ void viewOwnerPage(struct business* ownedBusiness) //Lisa
                 tagNum /= 2;
             }
             
-            printf("\nSet tags (1=Restaurant, 2=Market, 3=Both, 0=None): ");
-            scanf("%d", &ownedBusiness->tagCode);
+            printf("\nEditing tags");
+            
+            char buffer[20];
+            do{
+                printf("Add or remove a tag typing it or type quit to stop\n");
+                fgets(buffer,20,stdin);
+                buffer[strcspn(buffer, "\n")] = 0;
+                int tagNum = get_enum_value(buffer);
+                if(tagNum>0)
+                    ownedBusiness->tagCode ^= pow(2,tagNum);
+                else if(strncmp(buffer,"quit",4))
+                    printf("invalid tag, try again\n");
+                printf("All tags currently applied:\n");
+                tagNum = ownedBusiness->tagCode;
+                for(int i = 0; i < NUM_TAGS; i++){
+                    if(tagNum%2)
+                        printf("%s ",tags[i]);
+                    tagNum /= 2;
+                
+                }
+            }while(strncmp(buffer,"quit",4));
+            printf("\n");
            
             break;
         }
@@ -381,52 +411,65 @@ void viewOwnerPage(struct business* ownedBusiness) //Lisa
 }
 
 
-int get_enum_value(char * val) {
-    for (int i = 1; i < END-1; i++)
-        if (!strcmp(tags[i], val))
-            return i;
-    return -1;
- }
+
 
 
 void createBusiness(){
-    FILE* businessFile = fopen(BUSINESS_FILE,"ab");
+    FILE* businessFile = fopen(BUSINESS_FILE,"rb");
     if(businessFile == NULL){
         printf("file failed to open");
         return;
     }
-    if(&businesses[MAX_NUM_BUSINESS-1] != NULL){
+    fseek(businessFile, 0L, SEEK_END);
+    int sz;
+    sz = ftell(businessFile);
+    int maxsz = sizeof(struct profile)*MAX_NUM_BUSINESS;
+    if(sz == maxsz){
+        createBusiness(businesses);
         printf("Directory full, try again after we update");
         return;
     }
+    fclose(businessFile);
     struct business placeHolder;
+    getchar();
     printf("What is the name of the business?");
-    fscanf(stdin,"%s",placeHolder.busName);
+    fgets(placeHolder.busName,MAX_BUSINESS_NAME,stdin);
+    placeHolder.busName[strcspn(placeHolder.busName, "\n")] = 0;
     printf("Where are you located?");
-    fscanf(stdin,"%s",placeHolder.address);
+    fgets(placeHolder.address,ADDRESS_LENGTH,stdin);
+    placeHolder.address[strcspn(placeHolder.address, "\n")] = 0;
     placeHolder.ownerId = userProf.id;
     strcpy(placeHolder.ownerName, userProf.userName);
     placeHolder.rating = 5.0;
     placeHolder.numReviews = 0;
+    placeHolder.tagCode=0;
     char buffer[20];
     do{
-        printf("Add a tag or type quit to stop\n");
-        fscanf(stdin,"%s",buffer);
+        printf("Add or remove a tag typing it or type quit to stop\n");
+        fgets(buffer,20,stdin);
+        buffer[strcspn(buffer, "\n")] = 0;
         int tagNum = get_enum_value(buffer);
-        if(tagNum>1)
-            placeHolder.tagCode += pow(2,tagNum-1);
+        if(tagNum>0)
+            placeHolder.tagCode ^= pow(2,tagNum);
         else if(strncmp(buffer,"quit",4))
             printf("invalid tag, try again\n");
         printf("All tags currently applied:\n");
+        tagNum = placeHolder.tagCode;
         for(int i = 0; i < NUM_TAGS; i++){
             if(tagNum%2)
                 printf("%s ",tags[i]);
             tagNum /= 2;
         }
-    }while(!strncmp(buffer,"quit",4));
-    printf("Thank you for adding your business, please wait while we approve it");
+        printf("\n");
+    }while(strncmp(buffer,"quit",4));
+    printf("Thank you for adding your business, please wait while we approve it\n");
     userProf.status = businessOwner;
     printf("\n\n");
+    businessFile = fopen(BUSINESS_FILE,"ab");
+    if(businessFile == NULL){
+        printf("file failed to open");
+        return;
+    }
     fwrite(&placeHolder,sizeof(struct business),1,businessFile);
     FILE* checkList = fopen(PROFILE_FILE,"rb+");
     if(checkList == NULL){
@@ -503,19 +546,19 @@ void adminPage() //Lisa
         {
         case 1: //search shops same way as guest
         {
-            struct business* selected = searchByName(businesses);
-            if (strlen(selected->busName) > 0) 
+            searchByName();
+            if (foundBusiness->tagCode > 0) 
             {
-                adminView(selected);
+                adminView();
             }
             break;
         }
         case 2: //Search by tag
         {
-            struct business * selected = searchByTag(businesses);
-            if (strlen(selected->busName) > 0) 
+            searchByTag();
+            if (foundBusiness->tagCode > 0) 
             {
-                adminView(selected);
+                adminView();
             }
             break;
         }
@@ -595,12 +638,13 @@ void findProf(char name[]){
     fread(tempProf,sizeof(struct profile),MAX_NUM_USERS,checkList);
     fclose(checkList);
     for(int i = 0; i < MAX_NUM_USERS;i++){
-        if(!strcmp(name,tempProf[i].userName))
+        if(!strcmp(name,tempProf[i].userName)){
             placeHold = tempProf[i];
+        }
     }
 
 }
-double pow(double x, double y){
+int pow(int x, int y){
     int result = 1;
     for(int i = 0; i < y; i++)
         result *= x;
@@ -625,44 +669,47 @@ void encrypt (char input[],char stuck[], int sizeOfStuck){
     //printf("\n");
 }
 
-struct business * searchByName (){
+void searchByName (){
+    foundBusiness->tagCode = -1;
+    printf("Starting sbn\n");
     char searchfor[100];
     int matches[10];
     int count = 1;
+    getchar();
     printf("Enter the name of the business you are looking for: \n");
     fgets(searchfor, sizeof(searchfor), stdin);
     searchfor[strlen(searchfor)-1] = '\0'; // cuts the \n off the input
+    printf("%s\n",searchfor);
     //struct business allofthem[MAX_NUM_BUSINESS]; 
     //opens up the business bin and puts them all in a big array so I can look at them
     //loadBusinesses(allofthem);//these arestill here from before integration
     for (int i = 0; i<sizeof(businesses)/sizeof(struct business);i++){
-        if (!strcmp(businesses[i].busName,searchfor)&&businesses[i].tagCode%2){
+        if (!strncmp(businesses[i].busName,searchfor,strlen(searchfor))&&businesses[i].tagCode%2){
             //list of the first 10 businesses
             printf("%d) %s\n",count,businesses[i].busName);
             matches[count]=i;
             count++;
         }
-        if (count==11||strcmp(businesses[i].busName,"")){
+        if (count==11||!strcmp(businesses[i].busName,"")){
             break;
         }
     }
     if (count==1){
         printf("We could not find any businesses matching that name.");
-        return NULL;
     } else {
         printf("Enter the number of the business you are looking for: \n");
         int pick;
         scanf("%d",&pick);
-        return &businesses[matches[pick]];
+        foundBusiness = &businesses[matches[pick]];
     }
 }
 
-void guestView (struct business b){
+struct business* guestView (){
     int critic;
     char body[MAX_REVIEW_LENGTH];
     char author[MAX_NAME_LENGTH];
     int rating;
-    displayBusiness(b);
+    displayBusiness(*foundBusiness);
     printf("Leave a review? 1 for yes, 2 for no\n");
     scanf("%d", &critic);
     if (critic != 1){
@@ -677,28 +724,30 @@ void guestView (struct business b){
         scanf("%d",&rating);
         //if ((b.numReviews)==NULL){b.numReviews=0;}
         //printf("%s",b.reviews[b.numReviews].author);
-        strcpy(b.reviews[b.numReviews].author,author);
-        strcpy(b.reviews[b.numReviews].body,body);
-        b.reviews[b.numReviews].starRating = rating;
-        b.numReviews++;
+        strcpy(foundBusiness->reviews[foundBusiness->numReviews].author,author);
+        strcpy(foundBusiness->reviews[foundBusiness->numReviews].body,body);
+        foundBusiness->reviews[foundBusiness->numReviews].starRating = rating;
+        foundBusiness->numReviews++;
         int starSum = 0;
-        for(int i = 0; i < b.numReviews; i++)
-            starSum += b.reviews[i].starRating;
-        b.rating = starSum / b.numReviews;
+        for(int i = 0; i < foundBusiness->numReviews; i++)
+            starSum += foundBusiness->reviews[i].starRating;
+        foundBusiness->rating = starSum / foundBusiness->numReviews;
+        
     }
         
 }
-struct business * searchByTag(){
+void searchByTag(){
     int matches[10];
     int count = 1;
     char buffer[20];
     int fTagNum = 1;
+    foundBusiness->tagCode = -1;
     do{
         printf("Add a tag or type quit to search\n");
         fscanf(stdin,"%s",buffer);
         int tagNum = get_enum_value(buffer);
         if(tagNum>1)
-            fTagNum += (pow(2,tagNum-1));
+            fTagNum += (pow(2,tagNum));
         else if(strncmp(buffer,"quit",4))
             printf("invalid tag, try again\n");
         printf("All tags currently applied:\n");
@@ -730,12 +779,11 @@ struct business * searchByTag(){
     }
     if (count==1){
         printf("We could not find any businesses with that set of tags.");
-        return NULL;
     } else {
         printf("Enter the number of the business you are looking for: \n");
         int pick;
         scanf("%d",&pick);
-        return &businesses[matches[pick]];
+        foundBusiness = &businesses[matches[pick]];
     }
 
 }
@@ -796,10 +844,14 @@ bool compare()
 
     printf("If you already have an account, enter 1.\nIf you want to create an account, enter 2.\n");
     scanf("%d",&signup);
-    printf("Enter username: ");
-    scanf("%s",username);
-    printf("Enter password: ");
-    scanf("%s",password);
+    printf("Enter username:");
+    getchar();
+    fgets(username,MAX_NAME_LENGTH,stdin);
+    username[strcspn(username, "\n")] = 0;
+    findProf(username);
+    printf("Enter password:");
+    fgets(password,20,stdin);
+    password[strcspn(password, "\n")] = 0;
     encrypt(password,stuck,sizeof(stuck));
     signup--;
 
@@ -811,25 +863,27 @@ bool compare()
             //encrypt password; still needs to happen
             //printf("%s",stuck);
             
-            struct profile tempUser;
-            strcpy(tempUser.userName,username);
-            tempUser.status = guest;
+            strcpy(userProf.userName,username);
+            strcpy(userProf.password,stuck);
+            userProf.status = guest;
             FILE* nextid = fopen(NEXT_ID,"r+");
             if(nextid == NULL){
                 printf("file failed to open");
                 return true;
             }
-            fscanf(nextid,"%d",&(tempUser.id));
+            fscanf(nextid,"%d",&(userProf.id));
             fseek(nextid,0,SEEK_SET);
-            fprintf(nextid,"%d",tempUser.id+1);
+            fprintf(nextid,"%d",userProf.id+1);
             fclose(nextid);
-            printf("Congratulations! ");
+            FILE* accounts = fopen(PROFILE_FILE,"ab");
+            fwrite(&userProf,sizeof(struct profile),1,accounts);
+            printf("Congratulations!\n");
             return false;
         }
     } else {
         findProf(username);
         if(placeHold.id == -1){
-            printf("Sorry, we couldn't fine your account\n");
+            printf("Sorry, we couldn't find your account\n");
             return true;
         }
         if(!strcmp(placeHold.password,stuck)){
@@ -871,29 +925,26 @@ bool compare()
 
 void logIn(){
     while(compare()){
-        
     }
 }
 
-void adminView(struct business* b) //Lisa
+void adminView() //Lisa
 {
-    printf("\n\t\t\tAdmin View: %s\t\t\t\n", b->busName);
-    printf("Owner: %s\n", b->ownerName);
-    printf("Address: %s\n", b->address);
-    printf("Rating: %.1f\n", b->rating);
+    printf("\n\t\t\tAdmin View: %s\t\t\t\n", foundBusiness->busName);
+    printf("Owner: %s\n", foundBusiness->ownerName);
+    printf("Address: %s\n", foundBusiness->address);
+    printf("Rating: %.1f\n", foundBusiness->rating);
 
     printf("Tags: ");
     
-    int tagNum = b->tagCode;
+    int tagNum = foundBusiness->tagCode;
     
     for (int i = 0; i < NUM_TAGS; i++) 
     {
         if (tagNum % 2) printf("%s ", tags[i]);
         tagNum /= 2;
     }
-    
-    if (b->tagCode & Verified) printf("(Verified)");
-    
+
     printf("\n");
 
     int option;
@@ -911,7 +962,7 @@ void adminView(struct business* b) //Lisa
         {
         case 1: 
         {
-            printf("Current name: %s\nNew name (or press enter to keep): ", b->busName);
+            printf("Current name: %s\nNew name (or press enter to keep): ", foundBusiness->busName);
             
             char newName[MAX_BUSINESS_NAME];
             
@@ -921,16 +972,16 @@ void adminView(struct business* b) //Lisa
             
             if (strlen(newName) > 1) 
             {
-                strcpy(b->busName, newName);
+                strcpy(foundBusiness->busName, newName);
             }
 
-            printf("Current address: %s\nNew address: ", b->address);
+            printf("Current address: %s\nNew address: ", foundBusiness->address);
             
-            fgets(b->address, ADDRESS_LENGTH, stdin);
+            fgets(foundBusiness->address, ADDRESS_LENGTH, stdin);
 
             printf("Current tags: ");
             
-            tagNum = b->tagCode;
+            tagNum = foundBusiness->tagCode;
             
             for (int i = 0; i < NUM_TAGS; i++) 
             {
@@ -938,9 +989,26 @@ void adminView(struct business* b) //Lisa
                 tagNum /= 2;
             }
             
-            printf("\nSet tags (1=Restaurant, 2=Market, 3=Both, 0=None): ");
-            scanf("%d", &b->tagCode);
-            
+            char buffer[20];
+            do{
+                printf("Add or remove a tag typing it or type quit to stop\n");
+                fgets(buffer,20,stdin);
+                buffer[strcspn(buffer, "\n")] = 0;
+                int tagNum = get_enum_value(buffer);
+                if(tagNum>=0)
+                    foundBusiness->tagCode ^= pow(2,tagNum);
+                else if(strncmp(buffer,"quit",4))
+                    printf("invalid tag, try again\n");
+                printf("All tags currently applied:\n");
+                tagNum = foundBusiness->tagCode;
+                for(int i = 0; i < NUM_TAGS; i++){
+                    if(tagNum%2)
+                        printf("%s ",tags[i]);
+                    tagNum /= 2;
+                
+                }
+            }while(strncmp(buffer,"quit",4));
+            printf("\n");
             break;
         }
         
@@ -948,16 +1016,16 @@ void adminView(struct business* b) //Lisa
         {
             for (int i = 0; i < MAX_NUM_REVIEWS; i++) 
             {
-                if (strlen(b->reviews[i].author) > 0) 
+                if (strlen(foundBusiness->reviews[i].author) > 0) 
                 {
                     printf("\nReview #%d by %s (%d stars):\n%s\n",
-                        i + 1, b->reviews[i].author,
-                        b->reviews[i].starRating,
-                        b->reviews[i].body);
+                        i + 1, foundBusiness->reviews[i].author,
+                        foundBusiness->reviews[i].starRating,
+                        foundBusiness->reviews[i].body);
                     
-                    if (strlen(b->reviews[i].response) > 0) 
+                    if (strlen(foundBusiness->reviews[i].response) > 0) 
                     {
-                        printf("Owner response: %s\n", b->reviews[i].response);
+                        printf("Owner response: %s\n", foundBusiness->reviews[i].response);
                     }
                 }
             }
@@ -970,15 +1038,15 @@ void adminView(struct business* b) //Lisa
             
             if (reviewChoice > 0 && reviewChoice <= MAX_NUM_REVIEWS) 
             {
-                memset(&b->reviews[reviewChoice - 1], 0, sizeof(struct review));
+                memset(&(foundBusiness->reviews[reviewChoice - 1]), 0, sizeof(struct review));
                 printf("Review removed.\n");
             }
             break;
         }
         case 3: 
         {
-            b->tagCode ^= Verified;
-            printf("Verification status %s.\n", (b->tagCode & Verified) ? "set" : "removed");
+            foundBusiness->tagCode ^= Verified;
+            printf("Verification status %s.\n", (foundBusiness->tagCode & Verified) ? "set" : "removed");
             break;
         }
         case 4:
